@@ -12,12 +12,12 @@ import requests
 
 from .util import TimeAlign
 
-def get_code(secret):
+def get_code(secret, code_time=TimeAlign.get_time()):
     #Decode it from base64 to bytes
     secret = base64.b64decode(secret)
 
     #Get current Unix time (based on seconds)
-    unix_time = int(TimeAlign.get_time()/30)
+    unix_time = int(code_time/30)
 
     #Convert Unix time to bytes
     time_array = unix_time.to_bytes(8, byteorder='big', signed=False)

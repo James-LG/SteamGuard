@@ -13,6 +13,8 @@ import re
 import time
 import urllib
 
+from enum import Enum
+
 import rsa
 
 import requests
@@ -21,25 +23,40 @@ from .util import APIEndpoints, TimeAlign
 from .guard_code import get_code
 
 
-# from unidecode import unidecode
+class LoginResult(Enum):
+    #Login constants
+    LOGIN_OK = 1
+    BAD_CREDENTIALS = 2
+    NEED_CAPTCHA = 3
+    NEED_EMAIL = 4
+    NEED_2FA = 5
+    TOO_MANY_LOGINS = 6
+    GENERAL_FAILURE = 7
+    BAD_RSA = 8
+
 def confirm(account):
     login = UserLogin(account.username,account.password,account.shared)
     response = None
     while (True):
         response = login.do_login()
-        if response == LoginResult.login_okay:
+
+        if response == LoginResult.LOGIN_OK:
             print("success")
             break
-        elif response == LoginResult.need_email:
+
+        elif response == LoginResult.NEED_EMAIL:
             email = input("Please enter your email: ")
             login.email_code = email
-        elif response == LoginResult.need_captcha:
+
+        elif response == LoginResult.NEED_CAPTCHA:
             print(APIEndpoints.community_base + "/public/captcha.php?gid=" + login.captcha_gid)
             captcha = input("Please enter captcha: ")
             login.captcha_text = captcha
-        elif response == LoginResult.need_2fa:
+
+        elif response == LoginResult.NEED_2FA:
             print("code error,waiting 30 sec")
             time.sleep(30)
+
         else:
             print("unknown error",response)
             input("press to continue")
@@ -57,19 +74,6 @@ def confirm(account):
         for conf in confs:
             steam_account.accept_confirmation(conf)
 
-#LoginResult
-class LoginResult():
-    #Login constants
-    login_okay = 1
-    bad_credentials = 2
-    need_captcha = 3
-    need_email = 4
-    need_2fa = 5
-    too_many_logins = 6
-    general_failure = 7
-    bad_rsa = 8
-
-    
 #SessionData
 class SessionData():
     def __init__(self):
@@ -217,11 +221,11 @@ class UserLogin():
         response_data = mobile_login_request(APIEndpoints.community_base + "/login/getrsakey", "POST", post_data, cookies)
         response = response_data.text
         if (response == None or "<BODY>\nAn error occurred while processing your request." in response):
-            return LoginResult.general_failure
+            return LoginResult.GENERAL_FAILURE
         
         rsa_response = RSAResponse(response)
         if (not rsa_response.success):
-            return LoginResult.bad_rsa
+            return LoginResult.BAD_RSA
         
         #Encrypt the password using RSA
         #Encode password to bytes
@@ -262,40 +266,47 @@ class UserLogin():
         
         #Check that everything worked out okay
         if (response == None):
-            return LoginResult.general_failure
+            return LoginResult.GENERAL_FAILURE
         login_response = LoginResponse(response)
         print("loginResponse",login_response.__dict__)
         
         if (login_response.message != None and "Incorrect login" in login_response.message):
             print("Bad credentials")
-            return LoginResult.bad_credentials
+            return LoginResult.BAD_CREDENTIALS
+
         if (login_response.captcha_needed):
             print("Captcha needed")
             self.requires_captcha = True
             self.captcha_gid = login_response.captcha_gid
-            return LoginResult.need_captcha
+            return LoginResult.NEED_CAPTCHA
+
         if (login_response.emailauth_needed):
             print("Email auth needed")
             self.requires_email = True
             self.steam_id = login_response.email_steam_id
-            return LoginResult.need_email
+            return LoginResult.NEED_EMAIL
+
         if (login_response.requires_twofactor and not login_response.success):
             print("Two Factor needed")
             self.requires_2fa = True
-            return LoginResult.need_2fa
+            return LoginResult.NEED_2FA
+
         if (login_response.message != None and "too many login failures" in login_response.message):
             print("Too many login failures")
-            return LoginResult.too_many_logins
+            return LoginResult.TOO_MANY_LOGINS
+
         if (login_response.oauth == None):
             print("oauth missing")
-            return LoginResult.general_failure
+            return LoginResult.GENERAL_FAILURE
+
         print("oauth",login_response.oauth,type(login_response.oauth))
         if (len(login_response.oauth['oauth_token']) == 0):
             print("oauth token missing")
-            return LoginResult.general_failure
+            return LoginResult.GENERAL_FAILURE
+
         if (not login_response.login_complete):
             print("Bad Credentials")
-            return LoginResult.bad_credentials
+            return LoginResult.BAD_CREDENTIALS
         
         
         #If everything worked, set all the session data to the object
@@ -309,7 +320,7 @@ class UserLogin():
         self.session = session
         self.logged_in = True
         print("Logged IN!")
-        return LoginResult.login_okay
+        return LoginResult.LOGIN_OK
         
 #Confirmation
 class Confirmation():
