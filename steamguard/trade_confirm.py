@@ -17,9 +17,8 @@ import rsa
 
 import requests
 
-from steamguard.guard_code import APIEndpoints
-from steamguard.guard_code import get_code
-from steamguard.guard_code import time_align
+from .util import APIEndpoints, TimeAlign
+from .guard_code import get_code
 
 
 # from unidecode import unidecode
@@ -432,7 +431,7 @@ class SteamGuardAccount():
     def generate_confirmation_query_params(self,tag):
         if not tag:
             raise Exception("Device ID is not present")
-        time = time_align.get_time()
+        time = TimeAlign.get_time()
         #Return a string of attributes for the confirmation url
         return "p="+self.device_id+"&a="+self.session_data.steam_id+"&k="+self.generate_confirmation_hash_for_time(time, tag)+"&t="+str(int(time))+"&m=android&tag="+tag
 
