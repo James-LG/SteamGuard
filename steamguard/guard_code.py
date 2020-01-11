@@ -13,6 +13,15 @@ import requests
 from .util import TimeAlign
 
 def get_code(secret, code_time=TimeAlign.get_time()):
+    """
+    Gets the 2FA code for the given secret at the given time.
+
+    :param secret: Shared secret as a string.
+    :param code_time: Time of code generation. (Defaults to now).
+    
+    :returns: 2FA code as a string.
+    """
+    
     #Decode it from base64 to bytes
     secret = base64.b64decode(secret)
 
