@@ -179,11 +179,6 @@ class LoginResponse():
             self.oauth = None
         if self.oauth != None:
             self.oauth = json.loads(self.oauth)
-        
-
-class RSAResponse():
-    def __init__(self,j):
-        self.__dict__ = json.loads(j)
 
 class UserLogin():
     
@@ -223,8 +218,7 @@ class UserLogin():
         if (response == None or "<BODY>\nAn error occurred while processing your request." in response):
             return LoginResult.GENERAL_FAILURE
         
-        rsa_response = RSAResponse(response)
-        if (not rsa_response.success):
+        if (not response['success']):
             return LoginResult.BAD_RSA
         
         #Encrypt the password using RSA
@@ -232,8 +226,8 @@ class UserLogin():
         password_bytes = self.password.encode(encoding='ASCII')
         
         #Turn keys to hexidecimal
-        exponent = int(rsa_response.publickey_exp,16)
-        modulus = int(rsa_response.publickey_mod,16)
+        exponent = int(response['publickey_exp'],16)
+        modulus = int(response['publickey_mod'],16)
         
         #Create an RSA key using the modulus and exponent
         pub_key = rsa.PublicKey(modulus,exponent)
@@ -253,7 +247,7 @@ class UserLogin():
                     "captcha_text":self.captcha_text if self.requires_captcha else "",
                     "emailsteamid":self.steam_id if (self.requires_2fa or self.requires_email) else "",
                     "emailauth":self.email_code if self.requires_email else "",
-                    "rsatimestamp":rsa_response.timestamp,
+                    "rsatimestamp":response['timestamp'],
                     "remember_login":"false",
                     "oauth_client_id":"DE45CD61",
                     "oauth_scope":"read_profile write_profile read_client write_client",

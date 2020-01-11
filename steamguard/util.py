@@ -1,3 +1,6 @@
+"""
+Utility classes that don't belong anywhere else.
+"""
 import time
 import json
 
@@ -13,17 +16,20 @@ class APIEndpoints():
     two_factor_time_query = two_factor_base.replace("%s", "QueryTime")
 
 class TimeAlign():
+    """ Align local time to Steam's server times and store is statically. """
     difference = 0
     aligned = False
 
     @classmethod
     def get_time(cls):
+        """ Public function to get the time accounting for the local time difference to Steam's servers. """
         if not cls.aligned:
             cls.align()
         return time.time() + cls.difference
 
     @classmethod
     def align(cls):
+        """ Gets the time difference between local and Steam. """
         current = time.time()
         response = requests.post(APIEndpoints.two_factor_time_query, data="steamid=0")
         try:
